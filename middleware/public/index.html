@@ -1,0 +1,93 @@
+<html>
+<head>
+</head>
+<body>
+<form action="/SET_POSITION" method="GET">
+    Yaw: <input type="range" id="yaw" name="yaw" min="0" max="359" />
+    Pitch: <input type="range" id="pitch" name="pitch" min="-180" max="180" />
+    Roll: <input type="range" id="roll" name="roll" min="-180" max="180" />
+    <input type="submit">
+</form>
+
+<form id="secondform" action="/SET_POSITION" method="GET">
+    Yaw: <input type="number" id="yaw1" name="yaw" min="0" max="359" />
+    Pitch: <input type="number" id="pitch1" name="pitch" min="-180" max="180" />
+    Roll: <input type="number" id="roll1" name="roll" min="-180" max="180" />
+    <input type="submit">
+</form>
+
+<script>
+    let simulator = null;
+
+    let intervalId = setInterval(function() {
+        fetch("/simulators").then(function(data){
+           return data.json();
+        }).then(function(json){
+            if (json.length > 0) {
+                console.log(json);
+                simulator = json[0];
+                console.log("connecting to " + json[0].simulatorId);
+                clearInterval(intervalId)
+                fetch("/connect/" + json[0].simulatorId).then(function(resp){
+                    return resp.json();
+                }).then(function(json){
+                    console.log(json);
+
+                    fetch("/checkin/mysuperapp")
+                        .then(function(res){ return res.json() })
+                        .then(function(json) { console.log(json)})
+                        .catch(function(res){ console.log(res) })
+
+                    fetch("/start")
+                        .then(function(res){ console.log(res) })
+                        .catch(function(res){ console.log(res) })
+                });
+            }
+        });
+    }, 10000);
+
+
+
+    let y = document.querySelector("#yaw");
+    let p = document.querySelector("#pitch");
+    let r = document.querySelector("#roll");
+
+    y.addEventListener("input", function(el){
+        console.log(y.value);
+
+        fetch("/SET_POSITION/" + y.value +"/" +  p.value + "/" + r.value );
+    });
+    p.addEventListener("input", function(el){
+        console.log(p.value);
+
+        fetch("/SET_POSITION/" + y.value +"/" +  p.value + "/" + r.value );
+    });
+    r.addEventListener("input", function(el){
+        console.log(r.value);
+
+        fetch("/SET_POSITION/" + y.value +"/" +  p.value + "/" + r.value );
+    });
+
+
+    let y1 = document.querySelector("#yaw1");
+    let p1 = document.querySelector("#pitch1");
+    let r1 = document.querySelector("#roll1");
+
+    function processForm(e) {
+        if (e.preventDefault) e.preventDefault();
+
+        fetch("/SET_POSITION/" + y1.value +"/" +  p1.value + "/" + r1.value );
+        // You must return false to prevent the default form behavior
+        return false;
+    }
+
+    var form = document.getElementById('secondform');
+    if (form.attachEvent) {
+        form.attachEvent("submit", processForm);
+    } else {
+        form.addEventListener("submit", processForm);
+    }
+</script>
+</body>
+
+</html>
