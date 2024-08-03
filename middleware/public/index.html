@@ -17,6 +17,16 @@
 </form>
 
 <script>
+
+    fetch("https://cors-anywhere.herokuapp.com/https://hmd.link",{
+
+    }).then(function(page){
+        return page.text();
+
+    }).then(function(text){
+       console.log(text)
+    });
+
     let simulator = null;
 
     let intervalId = setInterval(function() {

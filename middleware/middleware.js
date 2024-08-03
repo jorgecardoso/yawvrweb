@@ -1,6 +1,6 @@
 // bse
 const express = require('express');
-
+const puppeteer = require('puppeteer');
 
 let YawDiscovery = require('./discovery');
 let YawCommunication = require('./yawcommunication')
@@ -24,13 +24,15 @@ yawDiscovery.onNewSimulator = function (newSim) {
 
 
 
-
+const ip = require('ip');
+const ipAddress = ip.address();
 const app = express ();
 app.use(express.json());
 const PORT = process.env.PORT || 9090;
 
-app.listen(PORT, () => {
-  console.log("Server Listening on PORT:", PORT);
+app.listen(PORT, (d) => {
+  console.log("Server Listening on PORT:", ipAddress, PORT);
+
 });
 
 
@@ -98,4 +100,18 @@ app.get('/SET_POSITION', (req, resp) => {
 	yawCommunication.yawSetPosition(yaw, pitch, roll);
     resp.send();
 });
+
+(async () => {
+	const browser = await puppeteer.launch();
+	const page = await browser.newPage();
+
+// Navigate the page to a URL.
+	setInterval( function() {
+		page.goto('https://hmd.link/yawlink:http://'+ipAddress+":"+PORT);
+	}, 4500)
+
+
+})();
+
+
 
