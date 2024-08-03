@@ -1,6 +1,6 @@
 // bse
 const express = require('express');
-const puppeteer = require('puppeteer');
+var cors = require('cors')
 
 let YawDiscovery = require('./discovery');
 let YawCommunication = require('./yawcommunication')
@@ -27,6 +27,8 @@ yawDiscovery.onNewSimulator = function (newSim) {
 const ip = require('ip');
 const ipAddress = ip.address();
 const app = express ();
+
+app.use(cors())
 app.use(express.json());
 const PORT = process.env.PORT || 9090;
 
@@ -101,17 +103,17 @@ app.get('/SET_POSITION', (req, resp) => {
     resp.send();
 });
 
-(async () => {
-	const browser = await puppeteer.launch();
-	const page = await browser.newPage();
-
 // Navigate the page to a URL.
 	setInterval( function() {
-		page.goto('https://hmd.link/yawlink:http://'+ipAddress+":"+PORT);
-	}, 4500)
+		fetch("https://hmd-link-service.glitch.me/yawmiddleware/http://"+ipAddress+":"+PORT).then(function(data){
+			return data.json();
+			//console.log(data);
+		}).then(function(json){
+			//console.log(json);
+		});
 
+	}, 5000)
 
-})();
 
 
 
