@@ -1,15 +1,17 @@
 <html>
 <head>
+
+    <title>Yaw VR Middleware Test page</title>
 </head>
 <body>
-<form action="/SET_POSITION" method="GET">
+<h1>Yaw VR Controller</h1>
+<form id="rangeform" action="/SET_POSITION" method="GET">
     Yaw: <input type="range" id="yaw" name="yaw" min="0" max="359" />
     Pitch: <input type="range" id="pitch" name="pitch" min="-180" max="180" />
     Roll: <input type="range" id="roll" name="roll" min="-180" max="180" />
-    <input type="submit">
 </form>
 
-<form id="secondform" action="/SET_POSITION" method="GET">
+<form id="numberform" action="/SET_POSITION" method="GET">
     Yaw: <input type="number" id="yaw1" name="yaw" min="0" max="359" />
     Pitch: <input type="number" id="pitch1" name="pitch" min="-180" max="180" />
     Roll: <input type="number" id="roll1" name="roll" min="-180" max="180" />
@@ -17,96 +19,212 @@
 </form>
 
 <script>
-    let simulator = null;
 
-    fetch("https://hmd-link-service.glitch.me/").then(function(page){
-        return page.json();
-    }).then(function(json){
-       console.log(json);
-       if (json.yawmiddleware) {
-           console.log("Yaw Middleware found")
-           begin(json.yawmiddleware.address);
-       } else {
-           console.log("Yaw Middleware not found");
+    findMiddleware()
+        .then(function(middlewareAddress){
+            return findSimulator(middlewareAddress, /.*/);
+        })
+        .then(function([middlewareAddress, simulator]){
+            return connect(middlewareAddress, simulator);
+        })
+        .then(function ([middlewareAddress, simulator]){
+            return checkIn(middlewareAddress, simulator, "myApp");
+        })
+        .then(function ([middlewareAddress, simulator, appName]){
+            return registerDOMEvents(middlewareAddress, simulator, appName);
+        })
+        .then(function ([middlewareAddress, simulator, appName]){
+            return start(middlewareAddress, simulator, appName);
+        })
+        .catch(error=>{
+            console.log(error);
+        });
+
+   function registerDOMEvents(middlewareAddress, simulator, appName) {
+       window.addEventListener("beforeunload", (event) => {
+           fetch(middlewareAddress+"/stop/",{keepalive: true})
+               .then(function(res){ return res.json() })
+               .then(function(json) { console.log(json)})
+               .catch(function(res){ console.log(res) })
+
+           fetch(middlewareAddress+"/exit/",{keepalive: true})
+               .then(function(res){ return res.json() })
+               .then(function(json) { console.log(json)})
+               .catch(function(res){ console.log(res) });
+       });
+
+       let y = document.querySelector("#yaw");
+       let p = document.querySelector("#pitch");
+       let r = document.querySelector("#roll");
+
+       let y1 = document.querySelector("#yaw1");
+       let p1 = document.querySelector("#pitch1");
+       let r1 = document.querySelector("#roll1");
+
+       y.addEventListener("input", function(el){
+           y1.value = y.value;
+           fetch(middlewareAddress+"/SET_POSITION/" + y.value +"/" +  p.value + "/" + r.value );
+       });
+       p.addEventListener("input", function(el){
+           p1.value = p.value;
+           fetch(middlewareAddress+"/SET_POSITION/" + y.value +"/" +  p.value + "/" + r.value );
+       });
+       r.addEventListener("input", function(el){
+           r1.value = r.value;
+           fetch(middlewareAddress+"/SET_POSITION/" + y.value +"/" +  p.value + "/" + r.value );
+       });
+
+
+       function processForm(e) {
+           if (e.preventDefault) e.preventDefault();
+
+           fetch(middlewareAddress+"/SET_POSITION/" + y1.value +"/" +  p1.value + "/" + r1.value );
+           // You must return false to prevent the default form behavior
+           return false;
        }
 
-    }).catch(function(error){
-        console.log(error);
-    });
-
-    function begin(simulatorAddress) {
-        console.log("Starting communication with Yaw Middleware")
-        let intervalId = setInterval(function() {
-            fetch(simulatorAddress+"/simulators").then(function(data){
-                return data.json();
-            }).then(function(json){
-                if (json.length > 0) {
-                    console.log(json);
-                    simulator = json[0];
-                    console.log("connecting to " + json[0].simulatorId);
-                    clearInterval(intervalId)
-                    fetch(simulatorAddress+"/connect/" + json[0].simulatorId).then(function(resp){
-                        return resp.json();
-                    }).then(function(json){
-                        console.log(json);
-
-                        fetch(simulatorAddress+"/checkin/mysuperapp")
-                            .then(function(res){ return res.json() })
-                            .then(function(json) { console.log(json)})
-                            .catch(function(res){ console.log(res) })
-
-                        fetch(simulatorAddress+"/start")
-                            .then(function(res){ console.log(res) })
-                            .catch(function(res){ console.log(res) })
-                    });
-                }
-            }).catch(function(error){
-                console.log(error);
-            });
-        }, 10000);
+       var form = document.getElementById('numberform');
+       if (form.attachEvent) {
+           form.attachEvent("submit", processForm);
+       } else {
+           form.addEventListener("submit", processForm);
+       }
+       return Promise.resolve([middlewareAddress, simulator, appName]);
+   }
 
 
 
-        let y = document.querySelector("#yaw");
-        let p = document.querySelector("#pitch");
-        let r = document.querySelector("#roll");
-
-        y.addEventListener("input", function(el){
-            console.log(y.value);
-
-            fetch(simulatorAddress+"/SET_POSITION/" + y.value +"/" +  p.value + "/" + r.value );
+    function connect(middlewareAddress, simulator) {
+        return new Promise((resolve, reject) => {
+            console.log("Connecting to: " + simulator.simulatorId);
+            fetch(middlewareAddress+"/connect/" + simulator.simulatorId)
+                .then(function(resp){ return resp.json(); })
+                .then(function(json) {
+                    console.log("Connected to: " + simulator.simulatorId);
+                    resolve([middlewareAddress, simulator])
+                })
+                .catch(error => {
+                    console.log(error);
+                    reject(error);
+                })
         });
-        p.addEventListener("input", function(el){
-            console.log(p.value);
-
-            fetch(simulatorAddress+"/SET_POSITION/" + y.value +"/" +  p.value + "/" + r.value );
-        });
-        r.addEventListener("input", function(el){
-            console.log(r.value);
-
-            fetch(simulatorAddress+"/SET_POSITION/" + y.value +"/" +  p.value + "/" + r.value );
-        });
-
-
-        let y1 = document.querySelector("#yaw1");
-        let p1 = document.querySelector("#pitch1");
-        let r1 = document.querySelector("#roll1");
-
-        function processForm(e) {
-            if (e.preventDefault) e.preventDefault();
-
-            fetch(simulatorAddress+"/SET_POSITION/" + y1.value +"/" +  p1.value + "/" + r1.value );
-            // You must return false to prevent the default form behavior
-            return false;
-        }
-
-        var form = document.getElementById('secondform');
-        if (form.attachEvent) {
-            form.attachEvent("submit", processForm);
-        } else {
-            form.addEventListener("submit", processForm);
-        }
     }
+
+
+    function checkIn(middlewareAddress, simulator, appName) {
+        return new Promise((resolve, reject) => {
+            let appId = appName+crypto.randomUUID();
+            let checkedIn = false;
+            console.log("Checking in app: ", appId)
+            fetch(middlewareAddress+"/checkin/"+appId)
+                .then(function(res){ return res.json() })
+                .then(function(json) {
+
+                    if (json.devicestatus == 'AVAILABLE') {
+                        checkedIn = true;
+                    }
+                    if (checkedIn) {
+                        console.log("Checked in: ", json)
+                        resolve([middlewareAddress, simulator, appId]);
+                    } else {
+                        console.log("Could not check in: ", json)
+                        reject(json);
+                    }
+                })
+                .catch(function(res){
+                    console.log(res)
+                    reject(error)
+                })
+        });
+    }
+
+
+    function start(middlewareAddress, simulator, appName) {
+        return new Promise((resolve, reject) => {
+            console.log("Starting app: ", appName)
+            fetch(middlewareAddress+"/start/")
+                .then(function(res){ return res.json() })
+                .then(function(json) {
+                    if (json.commandreceived == 'START') {
+                        console.log("Started")
+                        resolve([middlewareAddress, simulator, appName]);
+                    } else {
+                        console.log("Could not start", json)
+                        reject(json);
+                    }
+                })
+                .catch(function(res){
+                    console.log(res)
+                    reject(error)
+                })
+        });
+    }
+
+    function findMiddleware() {
+        return new Promise(function(resolve, reject) {
+            let interval = 2;
+            console.log("Using Service Discovery: https://hmd-link-service.glitch.me/")
+            setTimeout(search, interval);
+            function search() {
+                fetch("https://hmd-link-service.glitch.me/").then(function(page){
+                    return page.json();
+                }).then(function(json){
+                    //console.log(json);
+                    if (json.yawmiddleware) {
+                        console.log("Yaw Middleware found through service discovery: ", json.yawmiddleware);
+                        resolve(json.yawmiddleware.address);
+                        //begin(middleware.address);
+                    } else {
+                        interval = Math.min(interval *2, 30);
+                        console.log("Yaw Middleware not found through service discovery. Trying again in ", interval, " seconds.");
+                        setTimeout(search, interval*1000);
+                    }
+                }).catch(function(error){
+                    console.log(error);
+                    reject(error);
+                });
+            }
+        });
+    }
+
+    function findSimulator(middlewareAddress, simulatorNameRegExp) {
+        return new Promise(function(resolve, reject){
+            console.log("Asking Yaw Middleware: ", middlewareAddress, " for existing simulators.")
+            let interval = 2;
+            setTimeout(search, interval);
+            function search() {
+                fetch(middlewareAddress+"/simulators").then(function(data){
+                    return data.json();
+                }).then(function(json){
+                    let simulator = null;
+                    if (json.length > 0) {
+                        console.log("Found simulators: ", json);
+                        json.forEach(sim=>{
+                           if (sim.simulatorName.match(simulatorNameRegExp)) {
+                               console.log("Found simulator matching '", simulatorNameRegExp, "': ", sim);
+                               simulator = sim;
+                           }
+                        });
+                        //simulator = json[0];
+                    }
+                    if (simulator) {
+                        resolve([middlewareAddress, simulator]);
+                    } else {
+                        interval = Math.min(interval *2, 30);
+                        console.log("No simulators found through middleware. Asking again in ", interval, " seconds.");
+                        setTimeout(search, interval*1000);
+                    }
+                }).catch(function(error){
+                    console.log(error);
+                    reject(error);
+                });
+            }
+        });
+    }
+
+
+
+
 
 
 
