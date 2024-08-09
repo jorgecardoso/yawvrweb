@@ -25,11 +25,14 @@ class YawCommunication {
     }
 
     connect(simulator, callback) {
+        this._connectCallback = callback;
         if (this._tcpSocket != null) {
             log.error("Already connected. Call disconnect first.");
+            this._connectCallback({connectionstatus: 'NOT CONNECTED',
+                message: 'Already connected. Call disconnect first.'});
             return;
         }
-        this._connectCallback = callback;
+
         if (simulator.simulatorAvailable) {
             this._simulator = simulator;
             this._tcpSocket = new net.Socket();
@@ -101,6 +104,7 @@ class YawCommunication {
     onTCPData(data) {
         switch(data[0]) {
             case CHECK_IN_ANS: // CHECK_IN_ANS
+                log.info('Received: CHECK_IN_ANS' );
                 if (this._yawCheckInCallback) {
                     let msg = data.subarray(1).toString();
                     if (msg.startsWith("AVAILABLE")) {
@@ -112,33 +116,40 @@ class YawCommunication {
                 this._yawCheckInCallback = null;
                 break;
             case  START: // START
+                log.info('Received: START' );
                 if (this._yawStartCallback) {
                     this._yawStartCallback({commandreceived: "START"});
                 }
                 this._yawStartCallback = null;
                 break;
             case STOP: //STOP
+                log.info('Received: STOP' );
                 if (this._yawStopCallback) {
                     this._yawStopCallback({commandreceived: "STOP"});
                 }
                 this._yawStopCallback = null;
                 break;
             case EXIT: //EXIT
+                log.info('Received: EXIT' );
                 if (this._yawExitCallback) {
                     this._yawExitCallback({commandreceived: "EXIT"});
                 }
                 this._yawExitCallback = null;
                 break;
             case SET_TILT_LIMITS: // SET_TILT_LIMITS
+                log.info('Received: SET_TILT_LIMITS' );
                 break;
             case SET_YAW_LIMIT: // SET_YAW_LIMIT
+                log.info('Received: SET_YAW_LIMIT' );
                 break;
             case ERROR: // ERROR
+                log.info('Received: ERROR' );
                 break;
             default:
+                log.info('Received: ', data[0]);
 
         }
-        log.info('Received: ' + data[0]);
+
 
     }
 

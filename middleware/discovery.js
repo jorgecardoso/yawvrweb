@@ -42,8 +42,18 @@ class YawDiscovery {
         }.bind(this));
 
         // delete old simulators
-        let oldSimulators = this._simulators;
-        this._simulators = oldSimulators.filter((sim) => sim.simulatorAge < 2);
+
+        let deleted = false;
+        this._simulators = this._simulators.filter((sim) => {
+            if (sim.simulatorAge >=2) {
+                log.info("Deleting old simulator: ", sim, sim.simulatorAge < 2);
+                deleted = true;
+            }
+            return sim.simulatorAge < 2
+        });
+        if (deleted && this._newSimulatorCallback) {
+            this._newSimulatorCallback();
+        }
     }
 
 
