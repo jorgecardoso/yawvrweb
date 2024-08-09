@@ -51,7 +51,7 @@ class YawCommunication {
     }
 
     disconnect() {
-        this._tcpSocket.destroy();
+        if (this._tcpSocket) this._tcpSocket.destroy();
         this._tcpSocket = null;
     }
 
@@ -154,7 +154,8 @@ class YawCommunication {
     }
 
     onTCPClose() {
-
+        log.info("TCP Connection closed.")
+        this.disconnect();
     }
 
     onTCPError(data) {

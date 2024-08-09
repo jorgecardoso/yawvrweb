@@ -4,13 +4,13 @@
     <meta charset="utf-8">
     <title>A-Frame Yaw VR Component - Basic</title>
     <meta name="description" content="Basic example for Yaw VR component."></meta>
-    <script src="https://aframe.io/releases/0.9.2/aframe.min.js"></script>
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="../../dist/aframe-yawvr-component.min.js"></script>
-    <script src="https://unpkg.com/aframe-environment-component@1.0.0/dist/aframe-environment-component.min.js"></script>
   </head>
   <body>
-    <a-scene environment="preset: forest">
-      <a-entity yawvr=""></a-entity>
+    <a-scene >
+      <a-sky color="lightblue"></a-sky>
+      <a-box position="0 0 -3" yawvr="framerate: 10" animation="property: rotation; from: 0 -30 -45; to: 0 30 45; dur: 1000; loop: true; dir: alternate; easing: linear"></a-box>
     </a-scene>
 
     <!-- GitHub Corner. -->

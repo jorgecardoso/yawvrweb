@@ -88,8 +88,9 @@ app.get('/exit/', (request, response) => {
 	log.info("/exit");
 	yawCommunication.yawExit(function(msg) {
 		response.send(msg);
+		yawCommunication.disconnect();
 	});
-	yawCommunication.disconnect();
+
 });
 
 app.get('/SET_POSITION/:yaw/:pitch/:roll', (req, resp) => {
