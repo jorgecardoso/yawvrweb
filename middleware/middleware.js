@@ -1,45 +1,29 @@
-// bse
+const PORT = process.env.PORT || 9090;
+const ip = require('ip');
+const selfsigned = require('selfsigned');
+const pems = selfsigned.generate([{ name: 'commonName', value: ip.address() }], { days: 365 });
+//console.log(pems)
+
+const https = require('https')
 const express = require('express');
 var cors = require('cors')
 var log = require('loglevel');
 log.setLevel("info");
+
+const app = express();
+app.use(cors())
+app.use(express.json());
+app.use('/', express.static('public'));
+
+https.createServer({key: pems.private,cert: pems.cert}, app).listen(PORT, () => {
+	console.log("Server Listening on PORT:", ip.address(), PORT);
+})
 
 let YawDiscovery = require('./discovery');
 let YawCommunication = require('./yawcommunication')
 
 let yawDiscovery = new YawDiscovery();
 let yawCommunication = new YawCommunication();
-/*yawDiscovery.onNewSimulator = function () {
-	 simulators = yawDiscovery.simulators;
-	console.log("onnew simulator", simulators);
-	//yawCommunication.connect(newSim);
-	//yawCommunication.yawCheckIn("My Super Game");
-	//yawCommunication.yawStart();
-	//yawCommunication.yawSetPosition(10,30,40);
-}
-*/
-
-
-
-
-
-
-
-const ip = require('ip');
-const ipAddress = ip.address();
-const app = express ();
-
-app.use(cors())
-app.use(express.json());
-const PORT = process.env.PORT || 9090;
-
-app.listen(PORT, (d) => {
-  console.log("Server Listening on PORT:", ipAddress, PORT);
-
-});
-
-
-app.use('/', express.static('public'));
 
 
 app.get('/simulators', (request, response) => {
@@ -133,7 +117,7 @@ app.get('/SET_POSITION', (req, resp) => {
 
 // Navigate the page to a URL.
 	setInterval( function() {
-		fetch("https://hmd-link-service.glitch.me/yawmiddleware/http://"+ipAddress+":"+PORT).then(function(data){
+		fetch("https://hmd-link-service.glitch.me/yawmiddleware/https://"+ip.address()+":"+PORT).then(function(data){
 			return data.json();
 			//console.log(data);
 		}).then(function(json){
@@ -141,6 +125,10 @@ app.get('/SET_POSITION', (req, resp) => {
 		});
 
 	}, 5000)
+
+
+//require('child_process').exec('start https://'+ip.address()+":"+PORT);
+
 
 
 
