@@ -1,9 +1,15 @@
 /* global AFRAME */
-
 if (typeof AFRAME === 'undefined') {
-  throw new Error('Component attempted to register before AFRAME was available.');
+  throw new Error('Component "yawvr" attempted to register before AFRAME was available.');
 }
 
+/**
+ * TODO:
+ * service discovery address
+ * direct simulator address
+ * set limits
+ * connect through websocket
+ */
 /**
  * Yaw VR component for A-Frame.
  */
@@ -23,11 +29,11 @@ AFRAME.registerComponent('yawvr', {
    */
   init: function () {
     this._ready = false;
-    this._lastT = 0; // Timestamp of last position sent to simulator. To keep framerate
+    this._lastTick = 0; // Timestamp of last position sent to simulator. To keep framerate
 
     let _this = this;
 
-    this._registeredEventsPromise =findMiddleware()
+    this._registeredEventsPromise = findMiddleware()
         .then(function(middlewareAddress){
           _this._middlewareAddress = middlewareAddress;
           return findSimulator(middlewareAddress, /.*/);
@@ -41,13 +47,6 @@ AFRAME.registerComponent('yawvr', {
         .then(function ([middlewareAddress, simulator, appName]){
           return registerUnloadEvents(middlewareAddress, simulator, appName);
         })
-        /*.then(function ([middlewareAddress, simulator, appName]){
-          return start(middlewareAddress, simulator, appName);
-        })
-        .then(function ([middlewareAddress, simulator, appName]){
-          _this._ready = true;
-
-        })*/
         .catch(error=>{
           console.log("Init: ", error);
           return Promise.reject(error);
@@ -85,12 +84,12 @@ AFRAME.registerComponent('yawvr', {
    */
    tick: function (t) {
      if (!this._ready ) return;
-     if (t-this._lastT >= this._interval) {
+     if (t-this._lastTick >= this._interval) {
        let y = THREE.MathUtils.radToDeg(this.el.object3D.rotation.y)
        let p = THREE.MathUtils.radToDeg(this.el.object3D.rotation.x);
        let r = THREE.MathUtils.radToDeg(this.el.object3D.rotation.z);
-       fetch(this._middlewareAddress+"/SET_POSITION/" + y +"/" +  p + "/" + r ) // console.log(y, p, r)l
-       this._lastT = t;
+       fetch(this._middlewareAddress+"/SET_POSITION/" + y +"/" +  p + "/" + r );
+       this._lastTick = t;
      }
   },
 
