@@ -23,31 +23,34 @@ AFRAME.registerComponent('yawvr', {
    */
   init: function () {
     this._ready = false;
-    let _this = this;
-    this._lastT = 0;
+    this._lastT = 0; // Timestamp of last position sent to simulator. To keep framerate
 
-    findMiddleware()
+    let _this = this;
+
+    this._registeredEventsPromise =findMiddleware()
         .then(function(middlewareAddress){
+          _this._middlewareAddress = middlewareAddress;
           return findSimulator(middlewareAddress, /.*/);
         })
         .then(function([middlewareAddress, simulator]){
           return connect(middlewareAddress, simulator);
         })
         .then(function ([middlewareAddress, simulator]){
-          return checkIn(middlewareAddress, simulator, "myApp");
+          return checkIn(middlewareAddress, simulator, _this.data.appname);
         })
         .then(function ([middlewareAddress, simulator, appName]){
-          return registerDOMEvents(middlewareAddress, simulator, appName);
+          return registerUnloadEvents(middlewareAddress, simulator, appName);
         })
-        .then(function ([middlewareAddress, simulator, appName]){
+        /*.then(function ([middlewareAddress, simulator, appName]){
           return start(middlewareAddress, simulator, appName);
         })
         .then(function ([middlewareAddress, simulator, appName]){
           _this._ready = true;
-          _this._middlewareAddress = middlewareAddress;
-        })
+
+        })*/
         .catch(error=>{
-          console.log(error);
+          console.log("Init: ", error);
+          return Promise.reject(error);
         });
 
   },
@@ -65,7 +68,16 @@ AFRAME.registerComponent('yawvr', {
    * Generally undoes all modifications to the entity.
    */
   remove: function () {
-
+      let _this = this;
+      this._registeredEventsPromise
+          .then(function ([middlewareAddress, simulator, appName]){
+              _this.ready = false;
+              stop(middlewareAddress, simulator, appName);
+              exit(middlewareAddress, simulator, appName);
+          })
+          .catch(error=>{
+              console.log(error);
+          });
   },
 
   /**
@@ -73,7 +85,6 @@ AFRAME.registerComponent('yawvr', {
    */
    tick: function (t) {
      if (!this._ready ) return;
-
      if (t-this._lastT >= this._interval) {
        let y = THREE.MathUtils.radToDeg(this.el.object3D.rotation.y)
        let p = THREE.MathUtils.radToDeg(this.el.object3D.rotation.x);
@@ -81,35 +92,57 @@ AFRAME.registerComponent('yawvr', {
        fetch(this._middlewareAddress+"/SET_POSITION/" + y +"/" +  p + "/" + r ) // console.log(y, p, r)l
        this._lastT = t;
      }
-
   },
 
   /**
    * Called when entity pauses.
    * Use to stop or remove any dynamic or background behavior such as events.
    */
-  pause: function () { },
+  pause: function () {
+    let _this = this;
+    this._registeredEventsPromise
+        .then(function ([middlewareAddress, simulator, appName]){
+          return stop(middlewareAddress, simulator, appName);
+        })
+        .then(function ([middlewareAddress, simulator, appName]){
+          _this._ready = false;
+        })
+        .catch(error=>{
+          console.log(error);
+        });
+  },
 
   /**
    * Called when entity resumes.
    * Use to continue or add any dynamic or background behavior such as events.
    */
-  play: function () { },
+  play: function () {
+    let _this = this;
+    this._registeredEventsPromise
+        .then(function ([middlewareAddress, simulator, appName]){
+          return start(middlewareAddress, simulator, appName);
+        })
+        .then(function ([middlewareAddress, simulator, appName]){
+          _this._ready = true;
+        })
+        .catch(error=>{
+          console.log("Play: ", error);
+        });
+  },
 
-  /**
-   * Event handlers that automatically get attached or detached based on scene state.
-   */
-  events: {
-    // click: function (evt) { }
-  }
 });
 
 
 
+function registerUnloadEvents(middlewareAddress, simulator, appName) {
+    console.log("Registering unload event.")
+    window.addEventListener("beforeunload", function (event) {
+      console.log("Unloading window");
+      /*stop().then(function(res){ console.log(res) });
+      exit().then(function(res){ console.log(res) });
+      event.preventDefault();
+      event.returnValue = true;*/
 
-
-function registerDOMEvents(middlewareAddress, simulator, appName) {
-  window.addEventListener("beforeunload", (event) => {
     fetch(middlewareAddress+"/stop/",{keepalive: true})
         .then(function(res){ return res.json() })
         .then(function(json) { console.log(json)})
@@ -119,47 +152,10 @@ function registerDOMEvents(middlewareAddress, simulator, appName) {
         .then(function(res){ return res.json() })
         .then(function(json) { console.log(json)})
         .catch(function(res){ console.log(res) });
-  });
-/*
-  let y = document.querySelector("#yaw");
-  let p = document.querySelector("#pitch");
-  let r = document.querySelector("#roll");
 
-  let y1 = document.querySelector("#yaw1");
-  let p1 = document.querySelector("#pitch1");
-  let r1 = document.querySelector("#roll1");
+    });
 
-  y.addEventListener("input", function(el){
-    y1.value = y.value;
-    fetch(middlewareAddress+"/SET_POSITION/" + y.value +"/" +  p.value + "/" + r.value );
-  });
-  p.addEventListener("input", function(el){
-    p1.value = p.value;
-    fetch(middlewareAddress+"/SET_POSITION/" + y.value +"/" +  p.value + "/" + r.value );
-  });
-  r.addEventListener("input", function(el){
-    r1.value = r.value;
-    fetch(middlewareAddress+"/SET_POSITION/" + y.value +"/" +  p.value + "/" + r.value );
-  });
-
-
-  function processForm(e) {
-    if (e.preventDefault) e.preventDefault();
-
-    fetch(middlewareAddress+"/SET_POSITION/" + y1.value +"/" +  p1.value + "/" + r1.value );
-    // You must return false to prevent the default form behavior
-    return false;
-  }
-
-  var form = document.getElementById('numberform');
-  if (form.attachEvent) {
-    form.attachEvent("submit", processForm);
-  } else {
-    form.addEventListener("submit", processForm);
-  }
-
- */
-  return Promise.resolve([middlewareAddress, simulator, appName]);
+    return Promise.resolve([middlewareAddress, simulator, appName]);
 }
 
 
@@ -228,6 +224,49 @@ function start(middlewareAddress, simulator, appName) {
           reject(error)
         })
   });
+}
+
+function stop(middlewareAddress, simulator, appName) {
+  return new Promise((resolve, reject) => {
+    console.log("Stopping app: ", appName)
+    fetch(middlewareAddress+"/stop/",{keepalive: true})
+        .then(function(res){ return res.json() })
+        .then(function(json) {
+          if (json.commandreceived == 'STOP') {
+            console.log("Stopped")
+            resolve([middlewareAddress, simulator, appName]);
+          } else {
+            console.log("Could not stop", json)
+            reject(json);
+          }
+        })
+        .catch(function(res){
+          console.log(res)
+          reject(error)
+        })
+  });
+}
+
+
+function exit(middlewareAddress, simulator, appName) {
+    return new Promise((resolve, reject) => {
+        console.log("Exiting app: ", appName)
+        fetch(middlewareAddress+"/exit/",{keepalive: true})
+            .then(function(res){ return res.json() })
+            .then(function(json) {
+                if (json.commandreceived == 'EXIT') {
+                    console.log("Exited")
+                    resolve([middlewareAddress, simulator, appName]);
+                } else {
+                    console.log("Could not exit", json)
+                    reject(json);
+                }
+            })
+            .catch(function(res){
+                console.log(res)
+                reject(error)
+            })
+    });
 }
 
 function findMiddleware() {
