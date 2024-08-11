@@ -16,7 +16,7 @@ if (typeof AFRAME === 'undefined') {
 AFRAME.registerComponent('yawvr', {
     schema: {
         appname: {type: 'string', default: 'myApp'},
-        framerate: {type: 'number', default: 1}
+        rate: {type: 'number', default: 1}
     },
 
     /**
@@ -59,7 +59,7 @@ AFRAME.registerComponent('yawvr', {
      * Generally modifies the entity based on the data.
      */
     update: function (oldData) {
-        this._interval = 1000 / this.data.framerate;
+        this._interval = 1000 / this.data.rate;
     },
 
     /**
