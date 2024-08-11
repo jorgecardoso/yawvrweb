@@ -116,6 +116,43 @@ class YawCommunication {
         this._tcpSocket.write(message);
     }
 
+    yawSetTiltLimits(pitchForwardLimit, pitchBackwardLimit, rollLimit,callback) {
+        this._yawSetTiltLimitsCallback = callback;
+        if (!this._tcpSocket) {
+            if (callback) {
+                callback({connectionstatus: 'NOT CONNECTED',
+                    message: 'Cannot set tilt limits.'});
+            }
+            return;
+        }
+        let pfl = Number(pitchForwardLimit);
+        let pbl = Number(pitchBackwardLimit);
+        let rl = Number(rollLimit);
+        /*NOTE: YAW Documentation seems to be wrong about the order of these parameters:
+        Parameters in order: int pitchForwardLimit (4 bytes), int pitchBackwardLimit (4 bytes), int rollLimit (4 bytes)
+        The actual order seems to be pitchBackwardLimit, pitchForwardLimit, rollLimit
+        */
+        let message = new Uint8Array([SET_TILT_LIMITS, (pbl>>24)&255,(pbl>>16)&255,(pbl>>8)&255,pbl&255,
+            (pfl>>24)&255,(pfl>>16)&255,(pfl>>8)&255,pfl&255,
+            (rl>>24)&255,(rl>>16)&255,(rl>>8)&255,rl&255
+        ]);
+        this._tcpSocket.write(message);
+    }
+
+    yawSetYawLimit(yawLimit,callback) {
+        this._yawSetYawLimitCallback = callback;
+        if (!this._tcpSocket) {
+            if (callback) {
+                callback({connectionstatus: 'NOT CONNECTED',
+                    message: 'Cannot set yaw limit.'});
+            }
+            return;
+        }
+        let yl = Number(yawLimit);
+        let message = new Uint8Array([SET_YAW_LIMIT, (yl>>24)&255,(yl>>16)&255,(yl>>8)&255,yl&255]);
+        this._tcpSocket.write(message);
+    }
+
     yawSetPosition(yaw, pitch, roll) {
         let msg = `Y[${yaw}]P[${pitch}]R[${roll}]`;
 
@@ -165,10 +202,27 @@ class YawCommunication {
                 this._yawExitCallback = null;
                 break;
             case SET_TILT_LIMITS: // SET_TILT_LIMITS
-                log.info('Received: SET_TILT_LIMITS' );
+                let pbl = (data[1]<<24)+(data[2]<<16)+(data[3]<<8)+data[4];
+                let pfl = (data[5]<<24)+(data[6]<<16)+(data[7]<<8)+data[8];
+                let rl = (data[9]<<24)+(data[10]<<16)+(data[11]<<8)+data[12];
+                log.info('Received: SET_TILT_LIMITS', pfl, pbl, rl);
+
+                if (this._yawSetTiltLimitsCallback) {
+                    this._yawSetTiltLimitsCallback({commandreceived: "SET_TILT_LIMITS",
+                    pitchForwardLimit: pfl,
+                    pitchBackwardLimit: pbl,
+                    rollLimit:rl});
+                }
+                this._yawSetTiltLimitsCallback = null;
                 break;
             case SET_YAW_LIMIT: // SET_YAW_LIMIT
-                log.info('Received: SET_YAW_LIMIT' );
+                let yl = (data[1]<<24)+(data[2]<<16)+(data[3]<<8)+data[4];
+                log.info('Received: SET_YAW_LIMIT', yl );
+                if (this._yawSetYawLimitCallback) {
+                    this._yawSetYawLimitCallback({commandreceived: "SET_YAW_LIMIT",
+                    yawLimit: yl});
+                }
+                this._yawSetYawLimitCallback = null;
                 break;
             case ERROR: // ERROR
                 log.info('Received: ERROR' );

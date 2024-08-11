@@ -18,6 +18,29 @@
     <input type="submit">
 </form>
 
+<form id="tiltrangeform" action="/set_tilt_limits" method="GET">
+    pitchForwardLimit: <input type="range" id="pitchForwardLimit" name="pitchForwardLimit" min="0" max="15" />
+    pitchBackwardLimit: <input type="range" id="pitchBackwardLimit" name="pitchBackwardLimit" min="0" max="55" />
+    rollLimit: <input type="range" id="rollLimit" name="rollLimit" min="0" max="20" />
+</form>
+
+<form id="tiltnumberform" action="/set_tilt_limits" method="GET">
+    pitchForwardLimit: <input type="number" id="pitchForwardLimit1" name="pitchForwardLimit" min="0" max="15" />
+    pitchBackwardLimit: <input type="number" id="pitchBackwardLimit1" name="pitchBackwardLimit" min="0" max="55" />
+    rollLimit: <input type="number" id="rollLimit1" name="rollLimit1" min="0" max="20" />
+    <input type="submit">
+</form>
+
+
+
+<form id="yawrangeform" action="" method="GET">
+    yawLimit: <input type="range" id="yawLimit" name="yawLimit" min="0" max="180" />
+</form>
+
+<form id="yawnumberform" action="" method="GET">
+    yawLimit: <input type="number" id="yawLimit1" name="yawLimit" min="0" max="180" />
+    <input type="submit">
+</form>
 <script>
 
     findMiddleware()
@@ -74,7 +97,6 @@
            fetch(middlewareAddress+"/SET_POSITION/" + y.value +"/" +  p.value + "/" + r.value );
        });
 
-
        function processForm(e) {
            if (e.preventDefault) e.preventDefault();
 
@@ -83,11 +105,105 @@
            return false;
        }
 
-       var form = document.getElementById('numberform');
+
+       let pfl = document.querySelector("#pitchForwardLimit");
+       let pbl = document.querySelector("#pitchBackwardLimit");
+       let rl = document.querySelector("#rollLimit");
+       pfl.addEventListener("input", function(el){
+           pfl1.value = pfl.value;
+           fetch(middlewareAddress+"/set_tilt_limits/" + pfl.value +"/" +  pbl.value + "/" + rl.value )
+               .then(response=>{
+                   return response.json();
+               })
+               .then(json=>{
+                   console.log(json);
+               });
+       });
+       pbl.addEventListener("input", function(el){
+           pbl1.value = pbl.value;
+           fetch(middlewareAddress+"/set_tilt_limits/" + pfl.value +"/" +  pbl.value + "/" + rl.value )
+               .then(response=>{
+                   return response.json();
+               })
+               .then(json=>{
+                   console.log(json);
+               })
+       });
+       rl.addEventListener("input", function(el){
+           rl1.value = rl.value;
+           fetch(middlewareAddress+"/set_tilt_limits/" + pfl.value +"/" +  pbl.value + "/" + rl.value )
+               .then(response=>{
+                   return response.json();
+               })
+               .then(json=>{
+                   console.log(json);
+               })
+       });
+
+       let pfl1 = document.querySelector("#pitchForwardLimit1");
+       let pbl1 = document.querySelector("#pitchBackwardLimit1");
+       let rl1 = document.querySelector("#rollLimit1");
+
+       function processFormTilt(e) {
+           if (e.preventDefault) e.preventDefault();
+
+           fetch(middlewareAddress+"/set_tilt_limits/" + pfl1.value +"/" +  pbl1.value + "/" + rl1.value )
+           .then(response=>{
+               return response.json();
+           })
+           .then(json=>{
+               console.log(json);
+           })
+           // You must return false to prevent the default form behavior
+           return false;
+       }
+
+       let yl = document.querySelector("#yawLimit");
+       let yl1 = document.querySelector("#yawLimit1");
+       yl.addEventListener("input", function(el){
+           yl1.value = yl.value;
+           fetch(middlewareAddress+"/set_yaw_limit/" + yl.value )
+               .then(response=>{
+                   return response.json();
+               })
+               .then(json=>{
+                   console.log(json);
+               });
+       });
+       function processFormYaw(e) {
+           if (e.preventDefault) e.preventDefault();
+
+           fetch(middlewareAddress+"/set_yaw_limit/" + yl1.value  )
+               .then(response=>{
+                   return response.json();
+               })
+               .then(json=>{
+                   console.log(json);
+               })
+           // You must return false to prevent the default form behavior
+           return false;
+       }
+
+       let form = document.getElementById('numberform');
        if (form.attachEvent) {
            form.attachEvent("submit", processForm);
        } else {
            form.addEventListener("submit", processForm);
+       }
+
+       let formtiltlimits = document.getElementById('tiltnumberform');
+       if (formtiltlimits.attachEvent) {
+           formtiltlimits.attachEvent("submit", processFormTilt);
+       } else {
+           formtiltlimits.addEventListener("submit", processFormTilt);
+       }
+
+
+       let formyawlimits = document.getElementById('yawnumberform');
+       if (formyawlimits.attachEvent) {
+           formyawlimits.attachEvent("submit", processFormTilt);
+       } else {
+           formyawlimits.addEventListener("submit", processFormYaw);
        }
        return Promise.resolve([middlewareAddress, simulator, appName]);
    }

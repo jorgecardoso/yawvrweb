@@ -90,7 +90,25 @@ app.get('/exit/', (request, response) => {
 		response.send(msg);
 		yawCommunication.disconnect();
 	});
+});
 
+app.get('/set_tilt_limits/:pitchForward/:pitchBackward/:rollLimit', (request, response) => {
+	log.info("/set_tilt_limits: ", request.params['pitchForward'],request.params['pitchBackward'],request.params['rollLimit']);
+	yawCommunication.yawSetTiltLimits(
+		request.params['pitchForward'],request.params['pitchBackward'],request.params['rollLimit'],
+		function(msg) {
+			response.send(msg);
+	});
+});
+
+
+app.get('/set_yaw_limit/:yawLimit', (request, response) => {
+	log.info("/set_yaw_limit: ", request.params['yawLimit']);
+	yawCommunication.yawSetYawLimit(
+		request.params['yawLimit'],
+		function(msg) {
+			response.send(msg);
+		});
 });
 
 app.get('/SET_POSITION/:yaw/:pitch/:roll', (req, resp) => {
