@@ -5,18 +5,23 @@ if (typeof AFRAME === 'undefined') {
 
 /**
  * TODO:
- * service discovery address
- * direct simulator address
- * set limits
- * connect through websocket
+ * connect through websocket for position messages
  */
 /**
  * Yaw VR component for A-Frame.
  */
 AFRAME.registerComponent('yawvr', {
     schema: {
-        appname: {type: 'string', default: 'myApp'},
-        rate: {type: 'number', default: 1}
+        appname:            {type: 'string', default: 'myApp'},
+        rate:               {type: 'number', default: 10},
+
+        yawlimit:           {type: 'number', default: 180},
+        pitchforwardlimit:  {type: 'number', default: 15},
+        pitchbackwardlimit: {type: 'number', default: 55},
+        rolllimit:          {type: 'number', default: 20},
+
+        middlewareaddress: {type: 'string', default:''},
+        servicediscoveryaddress: {type: 'string', default:'https://hmd-link-service.glitch.me'},
     },
 
     /**
@@ -33,7 +38,13 @@ AFRAME.registerComponent('yawvr', {
 
         let _this = this;
 
-        this._registeredEventsPromise = _this._findMiddleware()
+        let middlewarePromise = null;
+        if (_this.data.middlewareaddress == '') {
+            middlewarePromise = _this._findMiddleware(this.data.servicediscoveryaddress);
+        } else {
+            middlewarePromise = Promise.resolve(_this.data.middlewareaddress);
+        }
+        this._registeredEventsPromise = middlewarePromise
             .then(function (middlewareAddress) {
                 _this._middlewareAddress = middlewareAddress;
                 return _this._findSimulator(middlewareAddress, /.*/);
@@ -59,7 +70,21 @@ AFRAME.registerComponent('yawvr', {
      * Generally modifies the entity based on the data.
      */
     update: function (oldData) {
+        let _this = this;
+
         this._interval = 1000 / this.data.rate;
+
+        this._registeredEventsPromise
+            .then( ([middlewareAddress, simulator, appName]) => {
+                return _this.setTiltLimits(middlewareAddress, simulator, appName,
+                    _this.data.pitchforwardlimit, _this.data.pitchbackwardlimit, _this.data.rolllimit)
+            })
+            .then( ([middlewareAddress, simulator, appName]) => {
+                return _this.setYawLimit(middlewareAddress, simulator, appName, _this.data.yawlimit);
+            })
+            .catch(error=> {
+                console.error("Updating component: ", error);
+            })
     },
 
     /**
@@ -131,7 +156,7 @@ AFRAME.registerComponent('yawvr', {
 
 
     _registerUnloadEvents: function (middlewareAddress, simulator, appName) {
-        console.log("Registering unload event.")
+        console.info("Registering unload event.")
         window.addEventListener("beforeunload", function (event) {
             console.log("Unloading window");
             fetch(middlewareAddress + "/stop/", {keepalive: true})
@@ -162,24 +187,24 @@ AFRAME.registerComponent('yawvr', {
     },
 
 
-    _findMiddleware: function () {
+    _findMiddleware: function (serviceDiscoveryAddress) {
         return new Promise(function (resolve, reject) {
             let interval = 2;
-            console.log("Using Service Discovery: https://hmd-link-service.glitch.me/")
+            console.info("Using Service Discovery: ", serviceDiscoveryAddress)
             setTimeout(search, interval);
 
             function search() {
-                fetch("https://hmd-link-service.glitch.me/").then(function (page) {
+                fetch(serviceDiscoveryAddress).then(function (page) {
                     return page.json();
                 }).then(function (json) {
                     //console.log(json);
                     if (json.yawmiddleware) {
-                        console.log("Yaw Middleware found through service discovery: ", json.yawmiddleware);
+                        console.info("Yaw Middleware found through service discovery: ", json.yawmiddleware);
                         resolve(json.yawmiddleware.address);
                         //begin(middleware.address);
                     } else {
                         interval = Math.min(interval * 2, 30);
-                        console.log("Yaw Middleware not found through service discovery. Trying again in ", interval, " seconds.");
+                        console.warn("Yaw Middleware not found through service discovery. Trying again in ", interval, " seconds.");
                         setTimeout(search, interval * 1000);
                     }
                 }).catch(function (error) {
@@ -192,7 +217,7 @@ AFRAME.registerComponent('yawvr', {
 
     _findSimulator: function (middlewareAddress, simulatorNameRegExp) {
         return new Promise(function (resolve, reject) {
-            console.log("Asking Yaw Middleware: ", middlewareAddress, " for existing simulators.")
+            console.info("Asking Yaw Middleware: ", middlewareAddress, " for existing simulators.")
             let interval = 2;
             setTimeout(search, interval);
 
@@ -202,10 +227,10 @@ AFRAME.registerComponent('yawvr', {
                 }).then(function (json) {
                     let simulator = null;
                     if (json.length > 0) {
-                        console.log("Found simulators: ", json);
+                        console.debug("Found simulators: ", json);
                         json.forEach(sim => {
                             if (sim.simulatorName.match(simulatorNameRegExp)) {
-                                console.log("Found simulator matching '", simulatorNameRegExp, "': ", sim);
+                                console.info("Found simulator matching '", simulatorNameRegExp, "': ", sim);
                                 simulator = sim;
                             }
                         });
@@ -215,7 +240,7 @@ AFRAME.registerComponent('yawvr', {
                         resolve([middlewareAddress, simulator]);
                     } else {
                         interval = Math.min(interval * 2, 30);
-                        console.log("No simulators found through middleware. Asking again in ", interval, " seconds.");
+                        console.warn("No simulators found through middleware. Asking again in ", interval, " seconds.");
                         setTimeout(search, interval * 1000);
                     }
                 }).catch(function (error) {
@@ -229,17 +254,17 @@ AFRAME.registerComponent('yawvr', {
 
     connect: function (middlewareAddress, simulator) {
         return new Promise((resolve, reject) => {
-            console.log("Connecting to: " + simulator.simulatorId);
+            console.info("Connecting to: " + simulator.simulatorId);
             fetch(middlewareAddress + "/connect/" + simulator.simulatorId)
                 .then(function (resp) {
                     return resp.json();
                 })
                 .then(function (json) {
-                    console.log("Connected to: " + simulator.simulatorId);
+                    console.info("Connected to: " + simulator.simulatorId);
                     resolve([middlewareAddress, simulator])
                 })
                 .catch(error => {
-                    console.log(error);
+                    console.error(error);
                     reject(error);
                 })
         });
@@ -250,7 +275,7 @@ AFRAME.registerComponent('yawvr', {
         return new Promise((resolve, reject) => {
             let appId = appName + crypto.randomUUID();
             let checkedIn = false;
-            console.log("Checking in app: ", appId)
+            console.info("Checking in app: ", appId)
             fetch(middlewareAddress + "/checkin/" + appId)
                 .then(function (res) {
                     return res.json()
@@ -261,15 +286,15 @@ AFRAME.registerComponent('yawvr', {
                         checkedIn = true;
                     }
                     if (checkedIn) {
-                        console.log("Checked in: ", json)
+                        console.info("Checked in: ", json)
                         resolve([middlewareAddress, simulator, appId]);
                     } else {
-                        console.log("Could not check in: ", json)
+                        console.warn("Could not check in: ", json)
                         reject(json);
                     }
                 })
-                .catch(function (res) {
-                    console.log(res)
+                .catch(function (error) {
+                    console.error(error)
                     reject(error)
                 })
         });
@@ -278,22 +303,22 @@ AFRAME.registerComponent('yawvr', {
 
     start: function (middlewareAddress, simulator, appName) {
         return new Promise((resolve, reject) => {
-            console.log("Starting app: ", appName)
+            console.info("Starting app: ", appName)
             fetch(middlewareAddress + "/start/")
                 .then(function (res) {
                     return res.json()
                 })
                 .then(function (json) {
                     if (json.commandreceived == 'START') {
-                        console.log("Started")
+                        console.info("Started")
                         resolve([middlewareAddress, simulator, appName]);
                     } else {
-                        console.log("Could not start", json)
+                        console.warn("Could not start", json)
                         reject(json);
                     }
                 })
-                .catch(function (res) {
-                    console.log(res)
+                .catch(function (error) {
+                    console.error(error)
                     reject(error)
                 })
         });
@@ -301,22 +326,22 @@ AFRAME.registerComponent('yawvr', {
 
     stop: function (middlewareAddress, simulator, appName) {
         return new Promise((resolve, reject) => {
-            console.log("Stopping app: ", appName)
+            console.info("Stopping app: ", appName)
             fetch(middlewareAddress + "/stop/", {keepalive: true})
                 .then(function (res) {
                     return res.json()
                 })
                 .then(function (json) {
                     if (json.commandreceived == 'STOP') {
-                        console.log("Stopped")
+                        console.info("Stopped")
                         resolve([middlewareAddress, simulator, appName]);
                     } else {
-                        console.log("Could not stop", json)
+                        console.warn("Could not stop", json)
                         reject(json);
                     }
                 })
-                .catch(function (res) {
-                    console.log(res)
+                .catch(function (error) {
+                    console.error(error)
                     reject(error)
                 })
         });
@@ -325,22 +350,69 @@ AFRAME.registerComponent('yawvr', {
 
     exit: function (middlewareAddress, simulator, appName) {
         return new Promise((resolve, reject) => {
-            console.log("Exiting app: ", appName)
+            console.info("Exiting app: ", appName)
             fetch(middlewareAddress + "/exit/", {keepalive: true})
                 .then(function (res) {
                     return res.json()
                 })
                 .then(function (json) {
                     if (json.commandreceived == 'EXIT') {
-                        console.log("Exited")
+                        console.info("Exited")
                         resolve([middlewareAddress, simulator, appName]);
                     } else {
-                        console.log("Could not exit", json)
+                        console.warn("Could not exit", json)
                         reject(json);
                     }
                 })
-                .catch(function (res) {
-                    console.log(res)
+                .catch(function (error) {
+                    console.error(error)
+                    reject(error)
+                })
+        });
+    },
+
+    setTiltLimits: function (middlewareAddress, simulator, appName, pitchForwardLimit, pitchBackwardLimit, rollLimit) {
+        return new Promise((resolve, reject) => {
+            console.info("Setting tilt limits for ", appName);
+            fetch(middlewareAddress + "/set_tilt_limits/" + pitchForwardLimit + "/" + pitchBackwardLimit + "/" + rollLimit)
+                .then(function (res) {
+                    return res.json()
+                })
+                .then(function (json) {
+                    if (json.commandreceived == 'SET_TILT_LIMITS') {
+                        console.info("Set tilt limits: ", json.pitchForwardLimit, json.pitchBackwardLimit, json.rollLimit)
+                        resolve([middlewareAddress, simulator, appName, json]);
+                    } else {
+                        console.warn("Could set tilt limits", json)
+                        reject(json);
+                    }
+                })
+                .catch(function (error) {
+                    console.error(error)
+                    reject(error)
+                })
+        });
+    },
+
+
+    setYawLimit: function (middlewareAddress, simulator, appName, yawLimit) {
+        return new Promise((resolve, reject) => {
+            console.info("Setting yaw limit for ", appName);
+            fetch(middlewareAddress + "/set_yaw_limit/" + yawLimit)
+                .then(function (res) {
+                    return res.json()
+                })
+                .then(function (json) {
+                    if (json.commandreceived == 'SET_YAW_LIMIT') {
+                        console.info("Set yaw limits: ", json.yawLimit)
+                        resolve([middlewareAddress, simulator, appName, json]);
+                    } else {
+                        console.warn("Could set yaw limit", json)
+                        reject(json);
+                    }
+                })
+                .catch(function (error) {
+                    console.error(error)
                     reject(error)
                 })
         });
