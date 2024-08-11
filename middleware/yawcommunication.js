@@ -57,6 +57,13 @@ class YawCommunication {
 
     yawCheckIn(gameName = "MyGame", callback) {
         this._yawCheckInCallback = callback;
+        if (!this._tcpSocket) {
+            if (callback) {
+                callback({connectionstatus: 'NOT CONNECTED',
+                    message: 'Cannot checkin to simulator.'});
+            }
+            return;
+        }
 
         let utf8Encode = new TextEncoder();
 
@@ -69,6 +76,13 @@ class YawCommunication {
 
     yawStart(callback) {
         this._yawStartCallback = callback;
+        if (!this._tcpSocket) {
+            if (callback) {
+                callback({connectionstatus: 'NOT CONNECTED',
+                    message: 'Cannot start simulator.'});
+            }
+            return;
+        }
 
         let message = new Uint8Array([START]);
         this._tcpSocket.write(message);
@@ -76,6 +90,13 @@ class YawCommunication {
 
     yawStop(callback) {
         this._yawStopCallback = callback;
+        if (!this._tcpSocket) {
+            if (callback) {
+                callback({connectionstatus: 'NOT CONNECTED',
+                    message: 'Cannot stop simulator.'});
+            }
+            return;
+        }
 
         let message = new Uint8Array([STOP]);
         this._tcpSocket.write(message);
@@ -83,6 +104,13 @@ class YawCommunication {
 
     yawExit(callback) {
         this._yawExitCallback = callback;
+        if (!this._tcpSocket) {
+            if (callback) {
+                callback({connectionstatus: 'NOT CONNECTED',
+                    message: 'Cannot exit simulator.'});
+            }
+            return;
+        }
 
         let message = new Uint8Array([EXIT]);
         this._tcpSocket.write(message);
