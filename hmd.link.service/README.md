@@ -6,9 +6,30 @@ This implementation does not use any persistence so services should announce the
 
 Test server at https://hmd-link-service.glitch.me
 
-### API
+## API
 
 
-### Installation
+| Endpoint | Method | Description                                                                                                                                         |
+|------|--------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| `/`  | GET    | Returns JSON list of services currently registered at same public IP as requester.                                                                  |
+| `/<servicename>/<serviceaddress>/` | GET | Sets or updates a service under the requester's public IP. Records are eliminated by the server automatically (default TIME_TO_LIVE is 10 minutes). |
 
+### JSON Format
+
+```json
+{
+  "<servicename1>":
+    {
+      "address":"<URL>",
+      "timestamp":<number>
+    },
+  "<servicename2>":
+   {
+      "address":"<URL>",
+      "timestamp":<number>
+   }
+}
 ```
+
+`timestamp` is the server's timestamp of the last service's update.
+
