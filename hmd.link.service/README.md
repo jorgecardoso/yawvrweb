@@ -33,3 +33,14 @@ Test server at https://hmd-link-service.glitch.me
 
 `timestamp` is the server's timestamp of the last service's update.
 
+
+## Install
+```bash
+cd hmd.link.service
+npm install
+```
+
+## Start
+```bash
+npm run start
+```
