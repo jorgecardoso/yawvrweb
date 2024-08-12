@@ -7,6 +7,8 @@ A component to control the Yaw VR motion simulator. Rotation value applied to an
 
 For [A-Frame](https://aframe.io).
 
+__Tested only in the YawVR Emulator for now.__
+
 ### API
 
 | Property | Description                                                                                                                                                                                                      | Default Value |

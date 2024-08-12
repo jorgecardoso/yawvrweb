@@ -1,0 +1,15 @@
+{
+  "name": "hmd.link.service",
+  "version": "1.0.0",
+  "description": "Inspired by the link sharing [hmd.link](mattrossman/hmd-link), the hmd.link.service allows sharing services through a REST interface to be consumed through JavaScript.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5"
+  }
+}
