@@ -154,6 +154,7 @@ class YawCommunication {
     }
 
     yawSetPosition(yaw, pitch, roll) {
+
         let msg = `Y[${yaw}]P[${pitch}]R[${roll}]`;
 
         this._udpSocket.send(msg, 0, msg.length, 50010, this._simulator.simulatorIP);

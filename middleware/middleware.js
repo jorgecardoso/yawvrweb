@@ -1,4 +1,5 @@
 const PORT = process.env.PORT || 9090;
+const SERVICE_DISCOVERY_URL = process.env.SERVICE_DISCOVERY_URL ? process.env.SERVICE_DISCOVERY_URL : "https://hmd-link-service.glitch.me";
 const ip = require('ip');
 const selfsigned = require('selfsigned');
 const pems = selfsigned.generate([{ name: 'commonName', value: ip.address() }], { days: 365 });
@@ -114,14 +115,17 @@ app.get('/SET_POSITION', (req, resp) => {
     resp.send();
 });
 
-
-// Navigate the page to a URL.
-	setInterval( function() {
-		fetch("https://hmd-link-service.glitch.me/yawmiddleware/https://"+ip.address()+":"+PORT).then(function(data){
+	console.log("Using Service Discovery Server: " + SERVICE_DISCOVERY_URL);
+	let handle = setInterval( function() {
+		fetch(SERVICE_DISCOVERY_URL+"/yawmiddleware/https://"+ip.address()+":"+PORT).then(function(data){
 			return data.json();
 			//console.log(data);
 		}).then(function(json){
 			//console.log(json);
+		}).catch(error => {
+			console.error("Could not connect to service discovery server. Stopping further attemps.")
+			clearInterval(handle);
+			console.error(error);
 		});
 
 	}, 5000)

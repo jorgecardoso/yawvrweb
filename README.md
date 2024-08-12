@@ -1,47 +1,16 @@
 # Yaw VR Web
 
+A set of components to control the Yaw VR motion simulator through WebXR/web applications.
 
-A component to control the Yaw VR motion simulator
+## Middleware
+The middleware is the bridge between the WebXR/web app and the simulator. It "converts" HTTP messages sent by the web app into TCP/UCP messages to the simulator.
+[More info](middleware/README.md)
 
-For [A-Frame](https://aframe.io).
+## HMD Link Service
 
-### API
+This component is not strictly necessary, but makes it easier to set up the web app without static addresses.
+The Middleware registers itself in this service discovery server allowing web apps to discover the address of the middleware.
 
-| Property | Description | Default Value |
-| -------- | ----------- | ------------- |
-|          |             |               |
+## A-Frame YawVR Component
 
-### Installation
-
-#### Browser
-
-Install and use by directly including the [browser files](dist):
-
-```html
-<head>
-  <title>My A-Frame Scene</title>
-  <script src="https://aframe.io/releases/0.9.2/aframe.min.js"></script>
-  <script src="https://unpkg.com/aframe-yawvr-component@1.0.0/dist/aframe-yawvr-component.min.js"></script>
-</head>
-
-<body>
-  <a-scene>
-    <a-entity yawvr="foo: bar"></a-entity>
-  </a-scene>
-</body>
-```
-
-#### npm
-
-Install via npm:
-
-```bash
-npm install aframe-yawvr-component
-```
-
-Then require and use.
-
-```js
-require('aframe');
-require('aframe-yawvr-component');
-```
+A component for A-Frame WebXR framework. The components reads rotation values from an entity and forwards it to the simulator.

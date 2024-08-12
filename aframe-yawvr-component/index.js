@@ -5,7 +5,9 @@ if (typeof AFRAME === 'undefined') {
 
 /**
  * TODO:
+ * property to specify simulator name regex (right now, it picks up the last simulator found if several are available)
  * connect through websocket for position messages
+ * send vibration data
  */
 /**
  * Yaw VR component for A-Frame.
