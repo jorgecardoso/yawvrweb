@@ -15,7 +15,7 @@ if (typeof AFRAME === 'undefined') {
 AFRAME.registerComponent('yawvr', {
     schema: {
         appname:            {type: 'string', default: 'myApp'},
-        rate:               {type: 'number', default: 10},
+        rate:               {type: 'number', default: 20},
 
         yawlimit:           {type: 'number', default: 180},
         pitchforwardlimit:  {type: 'number', default: 15},
@@ -112,7 +112,7 @@ AFRAME.registerComponent('yawvr', {
     tick: function (t) {
         if (!this._ready) return;
         if (t - this._lastTick >= this._interval) {
-            let y = THREE.MathUtils.radToDeg(this.el.object3D.rotation.y)
+            let y = THREE.MathUtils.radToDeg(-this.el.object3D.rotation.y)
             let p = THREE.MathUtils.radToDeg(this.el.object3D.rotation.x);
             let r = THREE.MathUtils.radToDeg(this.el.object3D.rotation.z);
             fetch(this._middlewareAddress + "/SET_POSITION/" + y + "/" + p + "/" + r);
