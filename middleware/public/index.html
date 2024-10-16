@@ -41,6 +41,13 @@
     yawLimit: <input type="number" id="yawLimit1" name="yawLimit" min="0" max="180" />
     <input type="submit">
 </form>
+
+
+<h2> From device</h2>
+    Yaw: <input type="number" id="yawFromDevice"  />
+    Pitch: <input type="number" id="pitchFromDevice"  />
+    Roll: <input type="number" id="rollFromDevice"  />
+
 <script>
 
     findMiddleware()
@@ -76,6 +83,7 @@
                .catch(function(res){ console.log(res) });
        });
 
+       let socket = null;
        let y = document.querySelector("#yaw");
        let p = document.querySelector("#pitch");
        let r = document.querySelector("#roll");
@@ -84,17 +92,31 @@
        let p1 = document.querySelector("#pitch1");
        let r1 = document.querySelector("#roll1");
 
+
+       let yFromDevice = document.querySelector("#yawFromDevice");
+       let pFromDevice = document.querySelector("#pitchFromDevice");
+       let rFromDevice = document.querySelector("#rollFromDevice");
+
        y.addEventListener("input", function(el){
            y1.value = y.value;
-           fetch(middlewareAddress+"/SET_POSITION/" + y.value +"/" +  p.value + "/" + r.value );
+           if (socket) {
+               socket.send( y.value +" " +  p.value + " " + r.value)
+           }
+           //fetch(middlewareAddress+"/SET_POSITION/" + y.value +"/" +  p.value + "/" + r.value );
        });
        p.addEventListener("input", function(el){
            p1.value = p.value;
-           fetch(middlewareAddress+"/SET_POSITION/" + y.value +"/" +  p.value + "/" + r.value );
+           if (socket) {
+               socket.send( y.value +" " +  p.value + " " + r.value)
+           }
+           //fetch(middlewareAddress+"/SET_POSITION/" + y.value +"/" +  p.value + "/" + r.value );
        });
        r.addEventListener("input", function(el){
            r1.value = r.value;
-           fetch(middlewareAddress+"/SET_POSITION/" + y.value +"/" +  p.value + "/" + r.value );
+           if (socket) {
+               socket.send( y.value +" " +  p.value + " " + r.value)
+           }
+           //fetch(middlewareAddress+"/SET_POSITION/" + y.value +"/" +  p.value + "/" + r.value );
        });
 
        function processForm(e) {
@@ -205,6 +227,22 @@
        } else {
            formyawlimits.addEventListener("submit", processFormYaw);
        }
+
+
+       socket = new WebSocket("wss://"+middlewareAddress.substring(6));
+       /*socket.addEventListener("open", (event) => {
+           socket.send("Hello Server!");
+       }); */
+       socket.addEventListener("message", (event) => {
+           //console.log("Message from server ", event.data);
+           let data = event.data.split(" ");
+           yFromDevice.value=data[0];
+           pFromDevice.value=data[1];
+           rFromDevice.value=data[2];
+       });
+
+       console.log(socket);
+
        return Promise.resolve([middlewareAddress, simulator, appName]);
    }
 
@@ -241,6 +279,7 @@
                     }
                     if (checkedIn) {
                         console.log("Checked in: ", json)
+
                         resolve([middlewareAddress, simulator, appId]);
                     } else {
                         console.log("Could not check in: ", json)

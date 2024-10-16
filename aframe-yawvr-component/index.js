@@ -21,6 +21,7 @@ AFRAME.registerComponent('yawvr', {
         pitchforwardlimit:  {type: 'number', default: 15},
         pitchbackwardlimit: {type: 'number', default: 55},
         rolllimit:          {type: 'number', default: 20},
+        motioncompensation: {type: 'boolean', default: false},
 
         middlewareaddress: {type: 'string', default:''},
         servicediscoveryaddress: {type: 'string', default:'https://hmd-link-service.glitch.me'},
@@ -39,6 +40,9 @@ AFRAME.registerComponent('yawvr', {
         this._lastTick = 0; // Timestamp of last position sent to simulator. To keep framerate
 
         let _this = this;
+
+        this._camera = this.el.querySelector("[camera],a-camera");
+        console.log("Camera: ", this._camera);
 
         let middlewarePromise = null;
         if (_this.data.middlewareaddress == '') {
@@ -111,12 +115,20 @@ AFRAME.registerComponent('yawvr', {
      */
     tick: function (t) {
         if (!this._ready) return;
+
         if (t - this._lastTick >= this._interval) {
             let y = THREE.MathUtils.radToDeg(-this.el.object3D.rotation.y)
             let p = THREE.MathUtils.radToDeg(this.el.object3D.rotation.x);
             let r = THREE.MathUtils.radToDeg(this.el.object3D.rotation.z);
             fetch(this._middlewareAddress + "/SET_POSITION/" + y + "/" + p + "/" + r);
             this._lastTick = t;
+
+
+            if (this.data.motioncompensation) {
+                let motion = this.yCurrent - this.yPrevious;
+                this.yPrevious = this.yCurrent;
+                this._camera.object3D.rotation.y += motion;
+            }
         }
     },
 
@@ -144,8 +156,22 @@ AFRAME.registerComponent('yawvr', {
      */
     play: function () {
         let _this = this;
+
         this._registeredEventsPromise
             .then(function ([middlewareAddress, simulator, appName]) {
+                _this._socket = new WebSocket("wss://"+middlewareAddress.substring(6));
+                _this.yCurrent = null;
+                _this.yPrevious = null;
+                _this._socket.addEventListener("message", (event) => {
+                    //console.log("Message from server ", event.data);
+                    let data = event.data.split(" ");
+
+                    if (_this.yPrevious == null) {
+                        _this.yPrevious = data[0];
+                    }
+                    _this.yCurrent = data[0];
+                });
+
                 return _this.start(middlewareAddress, simulator, appName);
             })
             .then(function ([middlewareAddress, simulator, appName]) {

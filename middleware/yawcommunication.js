@@ -17,15 +17,16 @@ class YawCommunication {
     constructor() {
         this._udpSocket = dgram.createSocket('udp4');
         this._udpSocket.on('listener', this.onUDPListening);
-        this._udpSocket.on('message', this.onUDPMessage);
+        this._udpSocket.on('message', this.onUDPMessage.bind(this));
         this._udpSocket.bind();
 
         this._simulator = null;
         //socket.bind(5000);
     }
 
-    connect(simulator, callback) {
+    connect(simulator, callback, udpcallback) {
         this._connectCallback = callback;
+        this._udpCallback = udpcallback;
         if (this._tcpSocket != null) {
             log.error("Already connected. Call disconnect first.");
             this._connectCallback({connectionstatus: 'NOT CONNECTED',
@@ -253,7 +254,13 @@ class YawCommunication {
     }
 
     onUDPMessage(message, remote) {
+        let msg = message.toString();
         log.debug('CLIENT RECEIVED: ', remote.address + ':' + remote.port +' - ' + message.toString());
+        let match = [...msg.matchAll(/\[(\-?\d*.\d*)\]/g)];
+
+        if (this._udpCallback) {
+            this._udpCallback(match[0][1], match[1][1], match[2][1]);
+        }
     }
 }
 
