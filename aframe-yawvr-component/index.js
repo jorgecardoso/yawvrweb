@@ -127,7 +127,7 @@ AFRAME.registerComponent('yawvr', {
             if (this.data.motioncompensation) {
                 let motion = this.yCurrent - this.yPrevious;
                 this.yPrevious = this.yCurrent;
-                this._camera.object3D.rotation.y += motion;
+                this._camera.object3D.rotation.y = 20;
             }
         }
     },
