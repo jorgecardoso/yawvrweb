@@ -42,6 +42,8 @@ AFRAME.registerComponent('yawvr', {
         let _this = this;
 
         this._camera = this.el.querySelector("[camera],a-camera");
+        this._cameraParent = this._camera.parentElement;
+
         console.log("Camera: ", this._camera);
 
         let middlewarePromise = null;
@@ -127,7 +129,8 @@ AFRAME.registerComponent('yawvr', {
             if (this.data.motioncompensation) {
                 let motion = this.yCurrent - this.yPrevious;
                 this.yPrevious = this.yCurrent;
-                this._camera.object3D.rotation.y = 20;
+                this._cameraParent.object3D.rotation.y += THREE.MathUtils.degToRad(motion);
+                console.log( this._cameraParent.object3D.rotation)
             }
         }
     },
