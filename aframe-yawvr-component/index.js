@@ -130,6 +130,7 @@ AFRAME.registerComponent('yawvr', {
                 let motion = this.yCurrent - this.yPrevious;
                 this.yPrevious = this.yCurrent;
                 this._cameraParent.object3D.rotation.y += THREE.MathUtils.degToRad(motion);
+                this._cameraParent.object3D.updateMatrix();
                 console.log( this._cameraParent.object3D.rotation)
             }
         }
