@@ -132,6 +132,7 @@ AFRAME.registerComponent('yawvr', {
 
         if (this.data.motioncompensation) {
             let motion = this.yCurrent - this.yPrevious;
+           // if (motion > 1) console.log("motion: ", motion)
             this.yPrevious = this.yCurrent;
             this._cameraParent.object3D.rotation.y += THREE.MathUtils.degToRad(motion);
             this._cameraParent.object3D.updateMatrix();
@@ -183,7 +184,7 @@ AFRAME.registerComponent('yawvr', {
             });
     },
     onWebSocketOpen: function () {
-        this._socket.addEventListener("message", this.onWebSocketMessage);
+        this._socket.addEventListener("message", this.onWebSocketMessage.bind(this));
     },
     onWebSocketMessage: function (event) {
         //console.log("Message from server ", event.data);
