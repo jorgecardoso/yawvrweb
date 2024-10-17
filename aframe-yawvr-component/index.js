@@ -14,17 +14,16 @@ if (typeof AFRAME === 'undefined') {
  */
 AFRAME.registerComponent('yawvr', {
     schema: {
-        appname:            {type: 'string', default: 'myApp'},
-        rate:               {type: 'number', default: 20},
+        appname: {type: 'string', default: 'myApp'},
 
-        yawlimit:           {type: 'number', default: 180},
-        pitchforwardlimit:  {type: 'number', default: 15},
+        yawlimit: {type: 'number', default: 180},
+        pitchforwardlimit: {type: 'number', default: 15},
         pitchbackwardlimit: {type: 'number', default: 55},
-        rolllimit:          {type: 'number', default: 20},
+        rolllimit: {type: 'number', default: 20},
         motioncompensation: {type: 'boolean', default: false},
 
-        middlewareaddress: {type: 'string', default:''},
-        servicediscoveryaddress: {type: 'string', default:'https://hmd-link-service.glitch.me'},
+        middlewareaddress: {type: 'string', default: ''},
+        servicediscoveryaddress: {type: 'string', default: 'https://hmd-link-service.glitch.me'},
     },
 
     /**
@@ -37,14 +36,19 @@ AFRAME.registerComponent('yawvr', {
      */
     init: function () {
         this._ready = false;
-        this._lastTick = 0; // Timestamp of last position sent to simulator. To keep framerate
 
         let _this = this;
 
-        this._camera = this.el.querySelector("[camera],a-camera");
-        this._cameraParent = this._camera.parentElement;
 
-        console.log("Camera: ", this._camera);
+        this._camera = this.el.querySelector("[camera],a-camera");
+
+        if (this.data.motioncompensation) {
+            this._cameraParent = document.createElement("a-entity");
+
+            this._camera.parentNode.replaceChild(this._cameraParent, this._camera);
+            this._cameraParent.appendChild(this._camera); //this._camera.parentElement;
+        }
+
 
         let middlewarePromise = null;
         if (_this.data.middlewareaddress == '') {
@@ -83,14 +87,14 @@ AFRAME.registerComponent('yawvr', {
         this._interval = 1000 / this.data.rate;
 
         this._registeredEventsPromise
-            .then( ([middlewareAddress, simulator, appName]) => {
+            .then(([middlewareAddress, simulator, appName]) => {
                 return _this.setTiltLimits(middlewareAddress, simulator, appName,
                     _this.data.pitchforwardlimit, _this.data.pitchbackwardlimit, _this.data.rolllimit)
             })
-            .then( ([middlewareAddress, simulator, appName]) => {
+            .then(([middlewareAddress, simulator, appName]) => {
                 return _this.setYawLimit(middlewareAddress, simulator, appName, _this.data.yawlimit);
             })
-            .catch(error=> {
+            .catch(error => {
                 console.error("Updating component: ", error);
             })
     },
@@ -104,8 +108,8 @@ AFRAME.registerComponent('yawvr', {
         this._registeredEventsPromise
             .then(function ([middlewareAddress, simulator, appName]) {
                 _this.ready = false;
-                stop(middlewareAddress, simulator, appName);
-                exit(middlewareAddress, simulator, appName);
+                _this.stop(middlewareAddress, simulator, appName);
+                _this.exit(middlewareAddress, simulator, appName);
             })
             .catch(error => {
                 console.log(error);
@@ -118,21 +122,20 @@ AFRAME.registerComponent('yawvr', {
     tick: function (t) {
         if (!this._ready) return;
 
-       // if (t - this._lastTick >= this._interval) {
-            let y = THREE.MathUtils.radToDeg(-this.el.object3D.rotation.y)
-            let p = THREE.MathUtils.radToDeg(this.el.object3D.rotation.x);
-            let r = THREE.MathUtils.radToDeg(this.el.object3D.rotation.z);
-            fetch(this._middlewareAddress + "/SET_POSITION/" + y + "/" + p + "/" + r);
-            this._lastTick = t;
+        // if (t - this._lastTick >= this._interval) {
+        let y = THREE.MathUtils.radToDeg(-this.el.object3D.rotation.y)
+        let p = THREE.MathUtils.radToDeg(this.el.object3D.rotation.x);
+        let r = THREE.MathUtils.radToDeg(this.el.object3D.rotation.z);
+        //fetch(this._middlewareAddress + "/SET_POSITION/" + y + "/" + p + "/" + r);
+        this.sendWebSocketMessage(y + " " + p + " " + r);
 
-
-            if (this.data.motioncompensation) {
-                let motion = this.yCurrent - this.yPrevious;
-                this.yPrevious = this.yCurrent;
-                this._cameraParent.object3D.rotation.y += THREE.MathUtils.degToRad(motion);
-                this._cameraParent.object3D.updateMatrix();
-                //console.log( this._cameraParent.object3D.rotation)
-            }
+        if (this.data.motioncompensation) {
+            let motion = this.yCurrent - this.yPrevious;
+            this.yPrevious = this.yCurrent;
+            this._cameraParent.object3D.rotation.y += THREE.MathUtils.degToRad(motion);
+            this._cameraParent.object3D.updateMatrix();
+            //console.log( this._cameraParent.object3D.rotation)
+        }
         //}
     },
 
@@ -144,6 +147,7 @@ AFRAME.registerComponent('yawvr', {
         let _this = this;
         this._registeredEventsPromise
             .then(function ([middlewareAddress, simulator, appName]) {
+                this._socket.close();
                 return _this.stop(middlewareAddress, simulator, appName);
             })
             .then(function ([middlewareAddress, simulator, appName]) {
@@ -163,18 +167,10 @@ AFRAME.registerComponent('yawvr', {
 
         this._registeredEventsPromise
             .then(function ([middlewareAddress, simulator, appName]) {
-                _this._socket = new WebSocket("wss://"+middlewareAddress.substring(6));
+                _this._socket = new WebSocket("wss://" + middlewareAddress.substring(6));
                 _this.yCurrent = null;
                 _this.yPrevious = null;
-                _this._socket.addEventListener("message", (event) => {
-                    //console.log("Message from server ", event.data);
-                    let data = event.data.split(" ");
-
-                    if (_this.yPrevious == null) {
-                        _this.yPrevious = data[0];
-                    }
-                    _this.yCurrent = data[0];
-                });
+                _this._socket.addEventListener("open", _this.onWebSocketOpen.bind(_this));
 
                 return _this.start(middlewareAddress, simulator, appName);
             })
@@ -185,7 +181,22 @@ AFRAME.registerComponent('yawvr', {
                 console.error("Playing component: ", error);
             });
     },
+    onWebSocketOpen: function () {
+        this._socket.addEventListener("message", this.onWebSocketMessage);
+    },
+    onWebSocketMessage: function (event) {
+        //console.log("Message from server ", event.data);
+        let data = event.data.split(" ");
 
+        if (this.yPrevious == null) {
+            this.yPrevious = data[0];
+        }
+        this.yCurrent = data[0];
+    },
+
+    sendWebSocketMessage: function (data) {
+        this._socket.send(data);
+    },
 
     _registerUnloadEvents: function (middlewareAddress, simulator, appName) {
         console.info("Registering unload event.")
