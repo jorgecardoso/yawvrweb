@@ -25,7 +25,9 @@ __Tested only in the YawVR Emulator for now.__
 
 ## Examples
 
-https://jorgecardoso.github.io/yawvrweb/aframe-yawvr-component/examples/basic/
+  - Basic example, with continuous movement: https://jorgecardoso.github.io/yawvrweb/aframe-yawvr-component/examples/basic/
+  - Driving a vehicle, without motion compensation: https://jorgecardoso.github.io/yawvrweb/aframe-yawvr-component/examples/motioncompensation/without.html
+  - Driving a vehicle, with motion compensation (y rotation only): https://jorgecardoso.github.io/yawvrweb/aframe-yawvr-component/examples/motioncompensation/without.html
 
 ### Installation
 

@@ -39,13 +39,11 @@ AFRAME.registerComponent('yawvr', {
 
         let _this = this;
 
-
         this._camera = this.el.querySelector("[camera],a-camera");
 
         if (this.data.motioncompensation) {
             this._cameraParent = this._camera.parentElement;
         }
-
 
         let middlewarePromise = null;
         if (_this.data.middlewareaddress == '') {
