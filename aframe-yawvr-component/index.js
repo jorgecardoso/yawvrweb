@@ -118,7 +118,7 @@ AFRAME.registerComponent('yawvr', {
     tick: function (t) {
         if (!this._ready) return;
 
-        if (t - this._lastTick >= this._interval) {
+       // if (t - this._lastTick >= this._interval) {
             let y = THREE.MathUtils.radToDeg(-this.el.object3D.rotation.y)
             let p = THREE.MathUtils.radToDeg(this.el.object3D.rotation.x);
             let r = THREE.MathUtils.radToDeg(this.el.object3D.rotation.z);
@@ -131,9 +131,9 @@ AFRAME.registerComponent('yawvr', {
                 this.yPrevious = this.yCurrent;
                 this._cameraParent.object3D.rotation.y += THREE.MathUtils.degToRad(motion);
                 this._cameraParent.object3D.updateMatrix();
-                console.log( this._cameraParent.object3D.rotation)
+                //console.log( this._cameraParent.object3D.rotation)
             }
-        }
+        //}
     },
 
     /**
