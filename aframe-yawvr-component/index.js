@@ -21,6 +21,7 @@ AFRAME.registerComponent('yawvr', {
         pitchbackwardlimit: {type: 'number', default: 55},
         rolllimit: {type: 'number', default: 20},
         motioncompensation: {type: 'boolean', default: false},
+        autostart: {type: 'boolean', default:true},
 
         middlewareaddress: {type: 'string', default: ''},
         servicediscoveryaddress: {type: 'string', default: 'https://hmd-link-service.glitch.me'},
@@ -164,15 +165,20 @@ AFRAME.registerComponent('yawvr', {
         this._registeredEventsPromise
             .then(function ([middlewareAddress, simulator, appName]) {
                 _this._socket = new WebSocket("wss://" + middlewareAddress.substring(6));
+
                 _this.yCurrent = null;
                 _this.yPrevious = null;
                 _this._socket.addEventListener("open", _this.onWebSocketOpen.bind(_this));
 
-                return _this.start(middlewareAddress, simulator, appName);
-            })
+                _this.simulatorData = [middlewareAddress, simulator, appName];
+                if (_this.data.autostart) {
+                    return _this.start(middlewareAddress, simulator, appName);
+                }
+
+            })/*
             .then(function ([middlewareAddress, simulator, appName]) {
                 _this._ready = true;
-            })
+            })*/
             .catch(error => {
                 console.error("Playing component: ", error);
             });
@@ -341,6 +347,7 @@ AFRAME.registerComponent('yawvr', {
 
 
     start: function (middlewareAddress, simulator, appName) {
+        let _this = this;
         return new Promise((resolve, reject) => {
             console.info("Starting app: ", appName)
             fetch(middlewareAddress + "/start/")
@@ -349,7 +356,8 @@ AFRAME.registerComponent('yawvr', {
                 })
                 .then(function (json) {
                     if (json.commandreceived == 'START') {
-                        console.info("Started")
+                        console.info("Started");
+                        _this._ready = true;
                         resolve([middlewareAddress, simulator, appName]);
                     } else {
                         console.warn("Could not start", json)
@@ -373,6 +381,7 @@ AFRAME.registerComponent('yawvr', {
                 .then(function (json) {
                     if (json.commandreceived == 'STOP') {
                         console.info("Stopped")
+                        _this._ready = true;
                         resolve([middlewareAddress, simulator, appName]);
                     } else {
                         console.warn("Could not stop", json)

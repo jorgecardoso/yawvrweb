@@ -8,9 +8,10 @@
     <script src="https://unpkg.com/aframe-environment-component@1.3.7/dist/aframe-environment-component.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.4.0/dist/aframe-extras.min.js"></script>
     <script src="../../dist/aframe-yawvr-component.min.js"></script>
+
 </head>
 <body>
-<a-scene>
+<a-scene cursor="rayOrigin: mouse">
     <a-entity environment="preset:forest"></a-entity>
 
     <a-entity
@@ -18,10 +19,13 @@
             movement-controls="constrainToNavMesh: false; camera: [movement-controls] a-box"
             gamepad-controls="rotationSensitivity: 1.5"
             position="0 0.2 0"
-            yawvr="motioncompensation: true"
+            yawvr="motioncompensation: true; autostart: false"
     >
+        <!-- this box is the 'vehicle' -->
         <a-box width="3.5" depth="4" height="0.5" color="orange" ></a-box>
-        <a-sphere position="0 0 -2" radius="0.3" color="red"></a-sphere>
+        <a-sphere id="startstopyaw" position="0 0 -2" radius="0.3" color="red"></a-sphere>
+
+
 
         <!-- with motion compensation we need an outer element to compensate the device's movement -->
         <!-- the box and sphere is just to show the motion compensation. It can be a simple a-entity-->
@@ -29,12 +33,27 @@
             <a-camera></a-camera>
             <a-sphere position="0 0 -1.5" radius="0.2" color="purple"></a-sphere>
             <a-entity id="lefthand" hand-controls="hand: left"></a-entity>
-            <a-entity id="righthand" hand-controls="hand: right"></a-entity>
+            <a-entity id="righthand" laser-controls="hand: right"></a-entity>
         </a-box>
 
     </a-entity>
 </a-scene>
 
+<script>
+
+    let button = document.querySelector("#startstopyaw");
+    let rig = document.querySelector("#rig");
+    let started = false;
+    button.addEventListener('click', function() {
+        if (!started) {
+            rig.components.yawvr.start(...rig.components.yawvr.simulatorData);
+        } else {
+            rig.components.yawvr.stop(...rig.components.yawvr.simulatorData);
+        }
+
+        started = !started;
+    })
+</script>
 <!-- GitHub Corner. -->
 <a href="https://github.com/jorgecardoso/yawvrweb" class="github-corner">
     <svg width="80" height="80" viewBox="0 0 250 250"
