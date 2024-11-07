@@ -372,6 +372,7 @@ AFRAME.registerComponent('yawvr', {
     },
 
     stop: function (middlewareAddress, simulator, appName) {
+        let _this = this;
         return new Promise((resolve, reject) => {
             console.info("Stopping app: ", appName)
             fetch(middlewareAddress + "/stop/", {keepalive: true})
@@ -381,7 +382,7 @@ AFRAME.registerComponent('yawvr', {
                 .then(function (json) {
                     if (json.commandreceived == 'STOP') {
                         console.info("Stopped")
-                        _this._ready = true;
+                        _this._ready = false;
                         resolve([middlewareAddress, simulator, appName]);
                     } else {
                         console.warn("Could not stop", json)

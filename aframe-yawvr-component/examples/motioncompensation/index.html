@@ -11,7 +11,7 @@
 
 </head>
 <body>
-<a-scene cursor="rayOrigin: mouse">
+<a-scene cursor="rayOrigin: mouse; objects: a-sphere">
     <a-entity environment="preset:forest"></a-entity>
 
     <a-entity
@@ -33,7 +33,7 @@
             <a-camera></a-camera>
             <a-sphere position="0 0 -1.5" radius="0.2" color="purple"></a-sphere>
             <a-entity id="lefthand" hand-controls="hand: left"></a-entity>
-            <a-entity id="righthand" laser-controls="hand: right"></a-entity>
+            <a-entity id="righthand" laser-controls="hand: right" raycaster="objects: a-sphere"></a-entity>
         </a-box>
 
     </a-entity>
